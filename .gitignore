@@ -1,0 +1,12 @@
+.idea/
+poetry.lock
+pyproject.toml
+packer/variables.json
+*.tfstate
+*.tfstate.*.backup
+*.tfstate.backup
+*.tfvars
+.terraform/
+*.retry
+**/roles/jdauphantnginx/*
+jdauphant.nginx
