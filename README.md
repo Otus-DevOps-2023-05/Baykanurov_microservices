@@ -46,10 +46,15 @@ docker pull baykanurov/otus-reddit:1.0
 
 ## Docker-3
 ### Что было сделано:
-1. Написал Dockerfiles для сервисов:
+1. Написал Dockerfile и собрал образ для каждого из сервисов приложения:
 - **post-py**
 - **comment**
 - **ui**
+```shell
+docker build -t baykanurov/post:1.0 ./post-py
+docker build -t baykanurov/comment:1.0 ./comment
+docker build -t baykanurov/ui:1.0 ./ui
+```
 2. Запустил и проверил, что всё работает
 ```shell
 docker network create reddit
