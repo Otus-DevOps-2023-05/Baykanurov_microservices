@@ -15,4 +15,4 @@ RUN apk update --no-cache && \
     gem install bundler:1.17.2 && \
     bundle install
 
-ENTRYPOINT ["puma"]
+CMD ["puma"]

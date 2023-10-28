@@ -25,7 +25,7 @@ yc compute instance create \
 ```shell
 docker-machine --debug create \
   --driver generic \
-  --generic-ip-address=51.250.84.88 \
+  --generic-ip-address=51.250.92.127 \
   --generic-ssh-user yc-user \
   --generic-ssh-key ~/.ssh/id_ed25519 \
   docker-host
@@ -46,10 +46,15 @@ docker pull baykanurov/otus-reddit:1.0
 
 ## Docker-3
 ### Что было сделано:
-1. Написал Dockerfiles для сервисов:
+1. Написал Dockerfile и собрал образ для каждого из сервисов приложения:
 - **post-py**
 - **comment**
 - **ui**
+```shell
+docker build -t baykanurov/post:1.0 ./post-py
+docker build -t baykanurov/comment:1.0 ./comment
+docker build -t baykanurov/ui:1.0 ./ui
+```
 2. Запустил и проверил, что всё работает
 ```shell
 docker network create reddit
@@ -96,3 +101,18 @@ docker run -d --network=reddit --network-alias=post baykanurov/post:1.0
 docker run -d --network=reddit --network-alias=comment baykanurov/comment:1.0
 docker run -d --network=reddit -p 9292:9292 baykanurov/ui:1.0
 ```
+
+## Docker-4
+### Что было сделано:
+- Изучено как работают сети Docker
+- Написан docker-compose для сервисов нашего приложения
+- Параметризированы значения в docker compose для:
+  - тегов образов для всех сервисов
+  - порт публикации сервиса ui
+  - username
+- Также для всех параметров добавлены default values
+- Задано имя для каждого контейнера
+- Имя проекта можно задать через name в docker-compose
+### Дополнительное задание
+Добавил файл docker-compose.override.yml который пробрасывает код сервиса как volume и добавляет возможность запускать puma для руби приложений в дебаг
+режиме с двумя воркерами

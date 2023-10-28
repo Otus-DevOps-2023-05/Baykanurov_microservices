@@ -12,4 +12,4 @@ RUN apk --no-cache --update add build-base && \
     pip install -r requirements.txt && \
     apk del build-base
 
-ENTRYPOINT ["python3", "post_app.py"]
+CMD ["python3", "post_app.py"]
