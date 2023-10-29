@@ -1,7 +1,7 @@
 services:
   mongo:
     container_name: post_db
-    image: mongo:${MONGO_IMAGE_TAG:-4.4}
+    image: mongo:${MONGO_IMAGE_TAG}
     volumes:
       - post_db:/data/db
     networks:
@@ -11,7 +11,7 @@ services:
   ui:
     container_name: ui
     build: ./ui
-    image: ${USERNAME:-baykanurov}/ui:${UI_IMAGE_TAG:-1.0}
+    image: ${USERNAME}/ui:${UI_IMAGE_TAG}
     ports:
       - ${UI_PORT:-9292}:9292/tcp
     networks:
@@ -20,7 +20,7 @@ services:
   post:
     container_name: post
     build: ./post-py
-    image: ${USERNAME:-baykanurov}/post:${POST_IMAGE_TAG:-1.0}
+    image: ${USERNAME}/post:${POST_IMAGE_TAG}
     networks:
       - back_net
       - front_net
@@ -28,7 +28,7 @@ services:
   comment:
     container_name: comment
     build: ./comment
-    image: ${USERNAME:-baykanurov}/comment:${COMMENT_IMAGE_TAG:-1.0}
+    image: ${USERNAME}/comment:${COMMENT_IMAGE_TAG}
     networks:
       - back_net
       - front_net
