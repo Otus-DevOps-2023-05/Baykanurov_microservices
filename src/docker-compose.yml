@@ -1,4 +1,3 @@
-name: reddit
 services:
   mongo:
     container_name: post_db

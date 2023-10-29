@@ -1,4 +1,3 @@
-name: reddit-override
 services:
   mongo:
     container_name: post_db
