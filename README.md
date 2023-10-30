@@ -116,3 +116,34 @@ docker run -d --network=reddit -p 9292:9292 baykanurov/ui:1.0
 ### Дополнительное задание
 Добавил файл docker-compose.override.yml который пробрасывает код сервиса как volume и добавляет возможность запускать puma для руби приложений в дебаг
 режиме с двумя воркерами
+
+## Gitlab CI 1
+### Что было сделано:
+- Развернул Gitlab с помощью omnibus-установки ([docker-compose.yml](gitlab-ci%2Fdocker-compose.yml))
+- Зашёл под root в Gitlab
+P.S. Чтобы получить пароль от root надо выполнить команду
+```shell
+sudo docker exec -it gitlab_web_1 grep 'Password:' /etc/gitlab/initial_root_password
+```
+- Создал группу homework и в ней проект example и запушил свой репозиторий в него
+- Поднял раннер
+```shell
+docker run -d --name gitlab-runner --restart always -v /srv/gitlabrunner/config:/etc/gitlab-runner -v /var/run/docker.sock:/var/run/docker.sock gitlab/gitlab-runner:latest
+```
+- Зарегистрировал раннер в группе
+```shell
+docker exec -it gitlab-runner gitlab-runner register \
+ --url http://62.84.127.187/ \
+ --non-interactive \
+ --locked=false \
+ --name DockerRunner \
+ --executor docker \
+ --docker-image alpine:latest \
+ --registration-token GR1348941Q63XnHnAzsVaqBBbxFJ_ \
+ --tag-list "linux,xenial,ubuntu,docker" \
+ --run-untagged
+```
+- Провёл тесты с приложением reddit на CI
+- Написал стадии для Staging и Production
+- Добавил условия для джобы
+- Добавил динамические окружения
