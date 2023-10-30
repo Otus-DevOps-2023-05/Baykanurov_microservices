@@ -13,7 +13,7 @@ services:
     build: ./ui
     image: ${USERNAME}/ui:${UI_IMAGE_TAG}
     ports:
-      - ${UI_PORT:-9292}:9292/tcp
+      - ${UI_PORT}:9292/tcp
     networks:
       - front_net
 
