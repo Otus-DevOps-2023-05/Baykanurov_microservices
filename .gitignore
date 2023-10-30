@@ -10,4 +10,3 @@ packer/variables.json
 *.retry
 **/roles/jdauphantnginx/*
 jdauphant.nginx
-reddit/
