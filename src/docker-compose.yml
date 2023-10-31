@@ -7,7 +7,6 @@ services:
       - post_db:/data/db
     networks:
       - back_net
-      - front_net
 
   ui:
     container_name: ui
