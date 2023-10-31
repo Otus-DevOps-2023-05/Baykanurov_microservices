@@ -10,33 +10,30 @@ services:
 
   ui:
     container_name: ui
-    build: ./ui
     image: ${USERNAME:-baykanurov}/ui:${UI_IMAGE_TAG:-1.0}
     command: ["puma", "--debug", "-w 2"]
     ports:
       - ${UI_PORT:-9292}:9292/tcp
     volumes:
-      - ./ui:/app:consistent
+      - ../src/ui:/app:consistent
     networks:
       - front_net
 
   post:
     container_name: post
-    build: ./post-py
     image: ${USERNAME:-baykanurov}/post:${POST_IMAGE_TAG:-1.0}
     volumes:
-      - ./post-py:/app:consistent
+      - ../src/post-py:/app:consistent
     networks:
       - back_net
       - front_net
 
   comment:
     container_name: comment
-    build: ./comment
     image: ${USERNAME:-baykanurov}/comment:${COMMENT_IMAGE_TAG:-1.0}
     command: ["puma", "--debug", "-w 2"]
     volumes:
-      - ./comment:/app:consistent
+      - ../src/comment:/app:consistent
     networks:
       - back_net
       - front_net
