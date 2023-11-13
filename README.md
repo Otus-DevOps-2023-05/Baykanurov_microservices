@@ -377,3 +377,69 @@ docker-machine rm -f $(docker-machine ls -q)
 yc compute instance delete k8s-worker-node
 yc compute instance delete k8s-master-node
 ```
+
+## Kubernetes-2
+### Что было сделано:
+1. Установил minikube и kubectl
+```shell
+[22:30:17] baykanurov:baykanurov_microservices git:(kubernetes-2) $ minikube version
+minikube version: v1.31.2
+commit: fd7ecd9c4599bef9f04c0986c4a0187f98a4396e
+[22:32:21] baykanurov:baykanurov_microservices git:(kubernetes-2) $ kubectl version
+Client Version: v1.28.3
+Kustomize Version: v5.0.4-0.20230601165947-6ce0bf390ce3
+Server Version: v1.27.4
+```
+2. Развернул кластер с помощью minikube на драйвере docker
+```shell
+minikube start --driver=docker
+```
+3. Написал deployment и services для приложения reddit
+```shell
+kubectl apply -f kubernetes/reddit/
+```
+4. Получил доступ к сервису ui
+```shell
+minikube service ui
+```
+5. Развернул аддон для kubernetes dashboard
+```shell
+minikube addons enable dashboard
+minikube dashboard --url 0.0.0.0
+```
+6. Развернул кластер kubernetes-2-baykanurov через Yandex Cloud
+Managed Service for kubernetes
+7. Создал группы узлов для данного кластера
+8. Подключился к кластеру
+```shell
+22:50:23] baykanurov:baykanurov_microservices git:(kubernetes-2) $ yc managed-kubernetes cluster get-credentials kubernetes-2-baykanurov --external
+
+Context 'yc-kubernetes-2-baykanurov' was added as default to kubeconfig '/home/baykanurov/.kube/config'.
+Check connection to cluster using 'kubectl cluster-info --kubeconfig /home/baykanurov/.kube/config'.
+
+Note, that authentication depends on 'yc' and its config profile 'default'.
+To access clusters using the Kubernetes API, please use Kubernetes Service Account.
+There is a new yc version '0.113.0' available. Current version: '0.111.0'.
+See release notes at https://cloud.yandex.ru/docs/cli/release-notes
+You can install it by running the following command in your shell:
+        $ yc components update
+[22:50:32] baykanurov:baykanurov_microservices git:(kubernetes-2) $ kubectl config current-context
+yc-kubernetes-2-baykanurov
+```
+9. Нашёл внешний IP-адрес развернутых нод и порт публикации сервиса UI
+```shell
+[23:48:07] baykanurov:baykanurov_microservices git:(kubernetes-2) $ kubectl get nodes -o wide
+NAME                        STATUS   ROLES    AGE   VERSION   INTERNAL-IP   EXTERNAL-IP      OS-IMAGE             KERNEL-VERSION      CONTAINER-RUN
+TIME
+cl1dc3oohjcqfp5nk94o-oniv   Ready    <none>   56m   v1.24.8   10.128.0.11   158.160.54.62    Ubuntu 20.04.6 LTS   5.4.0-165-generic   containerd://
+1.6.22
+cl1dc3oohjcqfp5nk94o-ybez   Ready    <none>   56m   v1.24.8   10.128.0.31   158.160.109.86   Ubuntu 20.04.6 LTS   5.4.0-165-generic   containerd://
+1.6.22
+[23:48:17] baykanurov:baykanurov_microservices git:(kubernetes-2) $ kubectl describe service ui -n dev | grep NodePort
+Type:                     NodePort
+NodePort:                 <unset>  32092/TCP
+```
+10. Проверил, что приложение работает на каждой из нод
+![img.png](docs/img.png)
+![img1.png](docs/img1.png)
+P.S. Удалил инстанс кластера т.к. домашние задания проверяются долго, а потребление кластера на YC очень дорогое.
