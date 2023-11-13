@@ -439,7 +439,12 @@ cl1dc3oohjcqfp5nk94o-ybez   Ready    <none>   56m   v1.24.8   10.128.0.31   158.
 Type:                     NodePort
 NodePort:                 <unset>  32092/TCP
 ```
-10. Проверил, что приложение работает на каждой из нод
+10. Запустил приложение
+```shell
+kubectl apply -f ./kubernetes/reddit/dev-namespace.yml
+kubectl apply -f ./kubernetes/reddit/ -n dev
+```
+11. Проверил, что приложение работает на каждой из нод
 ![img.png](docs/img.png)
 ![img1.png](docs/img1.png)
 P.S. Удалил инстанс кластера т.к. домашние задания проверяются долго, а потребление кластера на YC очень дорогое.
