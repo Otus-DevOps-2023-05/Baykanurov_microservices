@@ -10,3 +10,4 @@ packer/variables.json
 *.retry
 **/roles/jdauphantnginx/*
 jdauphant.nginx
+docker/.env

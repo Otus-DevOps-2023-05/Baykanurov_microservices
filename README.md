@@ -147,3 +147,25 @@ docker exec -it gitlab-runner gitlab-runner register \
 - Написал стадии для Staging и Production
 - Добавил условия для джобы
 - Добавил динамические окружения
+
+## Monitoring 1
+### Что было сделано:
+- Запустил prometheus
+```shell
+docker run --rm -p 9090:9090 -d --name prometheus prom/prometheus
+```
+- Упорядочил структуру репозитория для Docker
+- Создал Dockerfile и конфигурацию для Prometheus
+- Собрал все образы для сервисов приложения
+```shell
+for i in ui post-py comment; do cd src/$i; bash docker_build.sh; cd -; done
+```
+- Добавил сервис prometheus в docker-compose
+- Изучил взаимодействие с метриками Prometheus и протестировал отслеживание состояния сервисов которые подключены к мониторингу
+- Добавил Node exporter для сбора информации о работе Docker
+хоста
+- Запушил образы в Docker Hub
+  -  [prometheus](https://hub.docker.com/repository/docker/baykanurov/prometheus/general)
+  - [post](https://hub.docker.com/repository/docker/baykanurov/post/general)
+  - [comment](https://hub.docker.com/repository/docker/baykanurov/comment/general)
+  - [ui](https://hub.docker.com/repository/docker/baykanurov/ui/general)
