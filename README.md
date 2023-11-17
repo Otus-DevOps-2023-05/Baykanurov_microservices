@@ -169,3 +169,211 @@ for i in ui post-py comment; do cd src/$i; bash docker_build.sh; cd -; done
   - [post](https://hub.docker.com/repository/docker/baykanurov/post/general)
   - [comment](https://hub.docker.com/repository/docker/baykanurov/comment/general)
   - [ui](https://hub.docker.com/repository/docker/baykanurov/ui/general)
+
+## Kubernetes-1
+### Что было сделано:
+1. Развернул ВМ для master ноды
+```shell
+yc compute instance create \
+ --name k8s-master-node \
+ --zone ru-central1-a \
+ --cores 4 \
+ --memory 4GB \
+ --preemptible \
+ --network-interface subnet-name=default-ru-central1-a,nat-ip-version=ipv4 \
+ --create-boot-disk image-folder-id=standard-images,image-family=ubuntu-2004-lts,size=40,type=network-ssd \
+ --ssh-key ~/.ssh/id_ed25519.pub
+```
+2. Установил на неё docker через docker-machine
+```shell
+docker-machine create \
+ --driver generic \
+ --generic-ip-address=62.84.115.226 \
+ --generic-ssh-user yc-user \
+ --generic-ssh-key ~/.ssh/id_ed25519 \
+ k8s-master-node
+```
+3. Подключился к ВМ
+```shell
+docker-machine ssh k8s-master-node
+```
+4. Настроил ВМ для установки master ноды кластера Kubernetes
+```shell
+sudo su -
+
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+
+cat <<EOF >/etc/apt/sources.list.d/kubernetes.list
+deb http://apt.kubernetes.io/ kubernetes-xenial main
+EOF
+
+apt-get update
+apt-get install -y kubelet kubeadm kubectl
+
+cat <<EOF > /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+sysctl --system
+
+rm /etc/containerd/config.toml
+systemctl restart containerd
+```
+5. Установил master ноду
+```shell
+kubeadm init \
+--apiserver-cert-extra-sans=62.84.115.226  \
+--apiserver-advertise-address=0.0.0.0 \
+--control-plane-endpoint=62.84.115.226  \
+--pod-network-cidr=10.244.0.0/16
+```
+**Вывод:**
+```shell
+Your Kubernetes control-plane has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Alternatively, if you are the root user, you can run:
+
+  export KUBECONFIG=/etc/kubernetes/admin.conf
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+You can now join any number of control-plane nodes by copying certificate authorities
+and service account keys on each node and then running the following as root:
+
+  kubeadm join 62.84.115.226:6443 --token 8ccohc.w08nqkgiblfldqo4 \
+        --discovery-token-ca-cert-hash sha256:85832ab657eb313170aaef519a0c9ad3b1fe0768ed7843896f2fab53361dd556 \
+        --control-plane
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join 62.84.115.226:6443 --token 8ccohc.w08nqkgiblfldqo4 \
+        --discovery-token-ca-cert-hash sha256:85832ab657eb313170aaef519a0c9ad3b1fe0768ed7843896f2fab53361dd556
+
+```
+6. Добавил kubeconfig в домашнюю директорию
+```shell
+su - yc-user
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+```
+7. Присоединяемся к хосту
+```shell
+kubeadm join 62.84.115.226:6443 --token 8ccohc.w08nqkgiblfldqo4 \
+      --discovery-token-ca-cert-hash sha256:85832ab657eb313170aaef519a0c9ad3b1fe0768ed7843896f2fab53361dd556 \
+      --control-plane
+```
+8. Установка надстройки Pod network
+```shell
+kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+```
+**P.S. Я взял Flannel**
+9. Проверим что всё успешно поднялось
+```shell
+root@k8s-master-node:~# kubectl get pods -A
+NAMESPACE      NAME                                      READY   STATUS    RESTARTS   AGE
+kube-flannel   kube-flannel-ds-ps26v                     1/1     Running   0          52s
+kube-system    coredns-5dd5756b68-76xf5                  1/1     Running   0          5m18s
+kube-system    coredns-5dd5756b68-nbznk                  1/1     Running   0          5m18s
+kube-system    etcd-k8s-master-node                      1/1     Running   0          5m37s
+kube-system    kube-apiserver-k8s-master-node            1/1     Running   0          5m39s
+kube-system    kube-controller-manager-k8s-master-node   1/1     Running   0          5m37s
+kube-system    kube-proxy-qm8h5                          1/1     Running   0          5m18s
+kube-system    kube-scheduler-k8s-master-node            1/1     Running   0          5m37s
+```
+10. Проделал аналогичные операции для worker ноды, кроме `kubeadm init`
+11. Соединяем **master ноду** с **worker нодой** с помощью команды полученной при инициализации master ноды _(от root)_
+```shell
+root@k8s-worker-node:~# kubeadm join 62.84.115.226:6443 --token guab0t.smmqatepoj14a0t4 --discovery-token-ca-cert-hash sha256:85832ab657eb313170aaef519a0c9ad3b1fe0768ed7843896f2fab53361dd556
+[preflight] Running pre-flight checks
+[preflight] Reading configuration from the cluster...
+[preflight] FYI: You can look at this config file with 'kubectl -n kube-system get cm kubeadm-config -o yaml'
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[kubelet-start] Writing kubelet environment file with flags to file "/var/lib/kubelet/kubeadm-flags.env"
+[kubelet-start] Starting the kubelet
+[kubelet-start] Waiting for the kubelet to perform the TLS Bootstrap...
+
+This node has joined the cluster:
+* Certificate signing request was sent to apiserver and a response was received.
+* The Kubelet was informed of the new secure connection details.
+
+Run 'kubectl get nodes' on the control-plane to see this node join the cluster.
+```
+12. Проверим что всё успешно
+```shell
+yc-user@k8s-master-node:~$ kubectl get nodes
+NAME              STATUS   ROLES           AGE   VERSION
+k8s-master-node   Ready    control-plane   21m   v1.28.2
+k8s-worker-node   Ready    <none>          18s   v1.28.2
+```
+13. Дополнительно: Установка calico
+wget https://projectcalico.docs.tigera.io/manifests/calico.yaml
+sed -i -r -e 's/^([ ]+)# (- name: CALICO_IPV4POOL_CIDR)$\n/\1\2\n\1  value: "10.244.0.0\/16"/g' calico.yaml
+kubectl apply -f calico.yaml
+
+
+14. Запустим наши deployments
+```shell
+yc-user@k8s-master-node:~$ kubectl apply -f reddit/
+deployment.apps/comment-deployment created
+deployment.apps/mongo-deployment created
+deployment.apps/post-deployment created
+deployment.apps/ui-deployment created
+```
+15. Проверим, что всё успешно
+```shell
+yc-user@k8s-master-node:~$ kubectl get pods -A -o custom-columns=NAME:.metadata.name,IP:.status.podIP,NAME:.spec.nodeName
+NAME                                       IP              NAME
+comment-deployment-57c7d5855d-f5qdd        10.244.24.196   k8s-worker-node
+mongo-deployment-6d5bf6767b-gp8dw          10.244.24.195   k8s-worker-node
+post-deployment-8657f4bb56-l7q57           10.244.24.194   k8s-worker-node
+ui-deployment-549696fdd-dnmmw              10.244.24.193   k8s-worker-node
+kube-flannel-ds-6vgqv                      10.128.0.35     k8s-worker-node
+kube-flannel-ds-ps26v                      10.128.0.24     k8s-master-node
+calico-kube-controllers-7ddc4f45bc-225tx   10.244.24.197   k8s-worker-node
+calico-node-86bvx                          10.128.0.24     k8s-master-node
+calico-node-hzjm6                          10.128.0.35     k8s-worker-node
+coredns-5dd5756b68-76xf5                   10.244.0.3      k8s-master-node
+coredns-5dd5756b68-nbznk                   10.244.0.2      k8s-master-node
+etcd-k8s-master-node                       10.128.0.24     k8s-master-node
+kube-apiserver-k8s-master-node             10.128.0.24     k8s-master-node
+kube-controller-manager-k8s-master-node    10.128.0.24     k8s-master-node
+kube-proxy-54z7w                           10.128.0.35     k8s-worker-node
+kube-proxy-qm8h5                           10.128.0.24     k8s-master-node
+kube-scheduler-k8s-master-node             10.128.0.24     k8s-master-node
+```
+```shell
+yc-user@k8s-master-node:~$ kubectl get pods -A
+NAMESPACE      NAME                                       READY   STATUS    RESTARTS   AGE
+default        comment-deployment-57c7d5855d-f5qdd        1/1     Running   0          11m
+default        mongo-deployment-5d754ccc49-2d9mg          1/1     Running   0          59s
+default        post-deployment-8657f4bb56-l7q57           1/1     Running   0          11m
+default        ui-deployment-549696fdd-dnmmw              1/1     Running   0          11m
+kube-flannel   kube-flannel-ds-6vgqv                      1/1     Running   0          17m
+kube-flannel   kube-flannel-ds-ps26v                      1/1     Running   0          33m
+kube-system    calico-kube-controllers-7ddc4f45bc-225tx   1/1     Running   0          8m14s
+kube-system    calico-node-86bvx                          1/1     Running   0          8m14s
+kube-system    calico-node-hzjm6                          1/1     Running   0          8m14s
+kube-system    coredns-5dd5756b68-76xf5                   1/1     Running   0          38m
+kube-system    coredns-5dd5756b68-nbznk                   1/1     Running   0          38m
+kube-system    etcd-k8s-master-node                       1/1     Running   0          38m
+kube-system    kube-apiserver-k8s-master-node             1/1     Running   0          38m
+kube-system    kube-controller-manager-k8s-master-node    1/1     Running   0          38m
+kube-system    kube-proxy-54z7w                           1/1     Running   0          17m
+kube-system    kube-proxy-qm8h5                           1/1     Running   0          38m
+kube-system    kube-scheduler-k8s-master-node             1/1     Running   0          38m
+```
+16. После успешного выполнения ДЗ удалили docker хосты и ВМ
+```shell
+docker-machine rm -f $(docker-machine ls -q)
+yc compute instance delete k8s-worker-node
+yc compute instance delete k8s-master-node
+```
