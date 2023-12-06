@@ -448,3 +448,31 @@ kubectl apply -f ./kubernetes/reddit/ -n dev
 ![img.png](docs/img.png)
 ![img1.png](docs/img1.png)
 P.S. Удалил инстанс кластера т.к. домашние задания проверяются долго, а потребление кластера на YC очень дорогое.
+
+## Kubernetes-3
+### Что было сделано:
+1. Разобрался и подключил сущности Kubernetes:
+   - Ingress Controller
+   - Ingress
+   - Secret
+   - TLS
+   - LoadBalancer Service
+   - Network Policies
+   - PersistentVolumes
+   - PersistentVolumeClaims
+2. Установил ingress nginx
+```shell
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.2/deploy/static/provider/cloud/deploy.yaml
+```
+3. Защитил сервис с помощью TLS
+```shell
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=158.160.124.211"
+kubectl create secret tls ui-ingress --key tls.key --cert tls.crt -n dev
+```
+4. Создал диск в ya.cloud
+```shell
+yc compute disk create \
+ --name k8s \
+ --size 4 \
+ --description "disk for k8s"
+```
