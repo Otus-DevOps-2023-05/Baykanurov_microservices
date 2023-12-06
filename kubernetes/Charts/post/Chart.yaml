@@ -1,0 +1,9 @@
+---
+apiVersion: v2
+appVersion: "1.0.0"
+name: post
+version: 1.0.0
+description: OTUS reddit application POST
+maintainers:
+- name: Baykanurov
+  email: vov_ef@mail.ru
